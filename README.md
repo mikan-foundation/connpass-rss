@@ -1,14 +1,14 @@
-# Welcome to your CDK TypeScript project
+# Connpass RSS
 
-This is a blank project for CDK development with TypeScript.
+Sapporo Engineer Base が提供する Connpass 情報をRSSで公開するアプリケーションです
 
-The `cdk.json` file tells the CDK Toolkit how to execute your app.
+## 公開URL
 
-## Useful commands
+[https://sapporo-engineer-base.dev](https://sappporo-engineer-base.dev)
 
-* `npm run build`   compile typescript to js
-* `npm run watch`   watch for changes and compile
-* `npm run test`    perform the jest unit tests
-* `cdk deploy`      deploy this stack to your default AWS account/region
-* `cdk diff`        compare deployed stack with current state
-* `cdk synth`       emits the synthesized CloudFormation template
+## 使用言語・環境
+
+- TypeScript
+  - cheerio
+  - fast-xml-parser
+- AWS CDK v2
