@@ -18,7 +18,7 @@ export type ConnpassEvent = {
 };
 
 
-const baseUrl = "https://conpass.com/api/v1/event/?";
+const baseUrl = "https://connpass.com/api/v1/event/?";
 
 const ConnpassGetEvents = async (max: number = 10, order: number = 2, groupIds: string[] | undefined, eventIds: string[] | undefined, keywords: string[] | undefined): Promise<ConnpassEvent[]> =>  {
   const params = new URLSearchParams();
