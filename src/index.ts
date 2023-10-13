@@ -1,6 +1,8 @@
 import { S3, SSM } from "aws-sdk";
 import { XMLBuilder } from "fast-xml-parser";
 import { load } from "cheerio";
+import { ConnpassGetEvents } from "./apis/connpass";
+import { map } from "cheerio/lib/api/traversing";
 
 const putXmlRSS = async (xml: any) => {
   const s3 = new S3();
@@ -44,30 +46,21 @@ export const handler = async function () {
     .promise();
 
   const groupIdsArray = groupIdsParameter.Parameter?.Value?.split(",");
-  const eventIdsArray =  eventIdsParameter.Parameter?.Value?.split(",");
+  const eventIdsArray = eventIdsParameter.Parameter?.Value?.split(",");
 
   console.log("Connpass Group Ids from SSM:", groupIdsArray);
   console.log("Connpass Event Ids from SSM:", eventIdsArray);
 
-  console.log(
-    "Connpass API Request URL",
-    `https://connpass.com/api/v1/event/?series_id=${groupIdsArray?.join(
-      ","
-    )}&count=10&order=2`
+  const grpEvents: ConnpassEvent[] = await ConnpassGetEvents(
+    10,
+    2,
+    groupIdsArray,
+    undefined,
+    undefined
   );
 
-  const res: ConnpassResponse = await fetch(
-    `https://connpass.com/api/v1/event/?series_id=${groupIdsArray?.join(
-      ","
-    )}&count=10&order=2`
-  )
-    .then((res) => res.json())
-    .catch((err) => console.error(err));
-
-  console.log("Connpass API Response", res);
-
   const grpEventItems = await Promise.all(
-    res.events.map(async (event) => {
+    grpEvents.map(async (event) => {
       const html = await fetch(event.event_url).then((res) => res.text());
       const dom = load(html);
       const thumbnailUrl = dom('meta[property="og:image"]').attr("content");
@@ -83,6 +76,8 @@ export const handler = async function () {
     })
   );
 
+  
+
   const eventItems = await Promise.all(
     eventIdsArray?.map(async (eventId) => {
       const html = await fetch(`https://connpass.com/event/${eventId}/`).then(
@@ -91,9 +86,11 @@ export const handler = async function () {
       const dom = load(html);
       const thumbnailUrl = dom('meta[property="og:image"]').attr("content");
 
-      const res = await fetch(`https://connpass.com/api/v1/event/?event_id=${eventId}`)
-      .then((res) => res.json())
-      .catch((err) => console.error(err));
+      const res = await fetch(
+        `https://connpass.com/api/v1/event/?event_id=${eventId}`
+      )
+        .then((res) => res.json())
+        .catch((err) => console.error(err));
 
       return {
         title: dom("title").text(),
@@ -106,20 +103,41 @@ export const handler = async function () {
     }) ?? []
   );
 
-  const items = [...grpEventItems, ...eventItems];
-  // 重複を削除し、開催日時の降順にソート
-  const xmlItems = items.filter((item) => {
-    return (
-      items.findIndex((i) => i.link === item.link) ===
-      items.findIndex((i) => i.started_at === item.started_at)
-    );
-  }).sort((a, b) => {  
-    if (a.started_at > b.started_at) {
-      return -1;
-    } else {
-      return 1;
-    }
-  })
+  const localEvents = await ConnpassGetEvents(10, 2, undefined, undefined, [
+    "札幌市",
+  ]);
+
+  const localEventItems = await Promise.all(localEvents.map(async (event) => {   
+    const html = await fetch(event.event_url).then((res) => res.text());
+    const dom = load(html);
+    const thumbnailUrl = dom('meta[property="og:image"]').attr("content");
+
+    return {
+      title: event.title,
+      link: event.event_url,
+      description: event.description,
+      started_at: event.started_at,
+      ended_at: event.ended_at,
+      cover: thumbnailUrl,
+    };
+   }))
+
+  const items = [...grpEventItems, ...eventItems, ...localEventItems];
+  // 重複を削除し、開催日時の降順にソートし、最初の10件を取得
+  const xmlItems = items
+    .filter((item) => {
+      return (
+        items.findIndex((i) => i.link === item.link) ===
+        items.findIndex((i) => i.started_at === item.started_at)
+      );
+    })
+    .sort((a, b) => {
+      if (a.started_at > b.started_at) {
+        return -1;
+      } else {
+        return 1;
+      }
+    }).slice(0, 10);
 
   console.log("XML Events: ", xmlItems);
 
