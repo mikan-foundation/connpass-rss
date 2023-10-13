@@ -93,9 +93,9 @@ export const handler = async function () {
         .catch((err) => console.error(err));
 
       return {
-        title: dom("title").text(),
+        title: res.events[0].title,
         link: `https://connpass.com/event/${eventId}/`,
-        description: dom('meta[property="og:description"]').attr("content"),
+        description: res.events[0].description,
         started_at: res.events[0].started_at,
         ended_at: res.events[0].ended_at,
         cover: thumbnailUrl,
