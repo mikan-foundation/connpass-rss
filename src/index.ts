@@ -67,6 +67,7 @@ export const handler = async function () {
 
       return {
         title: event.title,
+        event_id: event.event_id,
         link: event.event_url,
         description: event.description,
         started_at: event.started_at,
@@ -94,6 +95,7 @@ export const handler = async function () {
 
       return {
         title: res.events[0].title,
+        event_id: res.events[0].event_id,
         link: `https://connpass.com/event/${eventId}/`,
         description: res.events[0].description,
         started_at: res.events[0].started_at,
@@ -115,6 +117,7 @@ export const handler = async function () {
     return {
       title: event.title,
       link: event.event_url,
+      event_id: event.event_id,
       description: event.description,
       started_at: event.started_at,
       ended_at: event.ended_at,
@@ -123,9 +126,14 @@ export const handler = async function () {
    }))
 
   const items = [...grpEventItems, ...eventItems, ...localEventItems];
-  // 重複削除済み配列
-
-  const uniqueItems = Array.from(new Set(items))
+  
+  // event_idで重複削除
+  const uniqueItems = items.filter(
+    (item, index) => {
+      const eventIds = items.map(item => item.event_id);
+      return eventIds.indexOf(item.event_id) === index;
+    }
+  )
 
   // 開催日時の降順にソートし、最初の10件を取得
   const xmlItems = uniqueItems
