@@ -123,14 +123,12 @@ export const handler = async function () {
    }))
 
   const items = [...grpEventItems, ...eventItems, ...localEventItems];
-  // 重複を削除し、開催日時の降順にソートし、最初の10件を取得
-  const xmlItems = items
-    .filter((item) => {
-      return (
-        items.findIndex((i) => i.link === item.link) ===
-        items.findIndex((i) => i.started_at === item.started_at)
-      );
-    })
+  // 重複削除済み配列
+
+  const uniqueItems = Array.from(new Set(items))
+
+  // 開催日時の降順にソートし、最初の10件を取得
+  const xmlItems = uniqueItems
     .sort((a, b) => {
       if (a.started_at > b.started_at) {
         return -1;
